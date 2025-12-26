@@ -107,7 +107,7 @@ def episode_download_subtitles(no, job_id=None, job_sub_function=False, provider
         return
     elif episode.subtitles is None:
         # subtitles indexing for this episode is incomplete, we'll do it again
-        store_subtitles(episode.path, path_mappings.path_replace_movie(episode.path))
+        store_subtitles(episode.sonarrEpisodeId)
         episode = database.execute(stmt).first()
     elif episode.missing_subtitles is None:
         # missing subtitles calculation for this episode is incomplete, we'll do it again
@@ -157,7 +157,7 @@ def episode_download_subtitles(no, job_id=None, job_sub_function=False, provider
                 if result:
                     if isinstance(result, tuple) and len(result):
                         result = result[0]
-                    store_subtitles(episode.path, path_mappings.path_replace(episode.path))
+                    store_subtitles(episode.sonarrEpisodeId)
                     history_log(1, episode.sonarrSeriesId, episode.sonarrEpisodeId, result)
                     send_notifications(episode.sonarrSeriesId, episode.sonarrEpisodeId, result.message)
     else:
@@ -225,7 +225,7 @@ def episode_download_specific_subtitles(sonarr_series_id, sonarr_episode_id, lan
                 result = result[0]
             history_log(1, sonarr_series_id, sonarr_episode_id, result)
             send_notifications(sonarr_series_id, sonarr_episode_id, result.message)
-            store_subtitles(result.path, episodePath)
+            store_subtitles(sonarr_episode_id)
         else:
             event_stream(type='episode', payload=sonarr_episode_id)
             jobs_queue.update_job_progress(job_id=job_id, progress_value='max',

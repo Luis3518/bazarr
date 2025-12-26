@@ -49,6 +49,7 @@ def embedded_subs_reader(file, file_size, episode_file_id=None, movie_file_id=No
     if cache_provider:
         for detected_language in data[cache_provider]["subtitle"]:
             # Avoid commentary subtitles
+            track_id = detected_language.get("id")
             name = detected_language.get("name", "").lower()
             if "commentary" in name:
                 logging.debug(f"Ignoring commentary subtitle: {name}")
@@ -69,7 +70,7 @@ def embedded_subs_reader(file, file_size, episode_file_id=None, movie_file_id=No
             forced = detected_language.get("forced", False)
             hearing_impaired = detected_language.get("hearing_impaired", False)
             codec = detected_language.get("format")  # or None
-            subtitles_list.append([language, forced, hearing_impaired, codec])
+            subtitles_list.append([track_id, language, forced, hearing_impaired, codec])
 
     return subtitles_list
 

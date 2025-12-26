@@ -270,7 +270,7 @@ def episode_manually_download_specific_subtitle(sonarr_series_id, sonarr_episode
             history_log(2, sonarr_series_id, sonarr_episode_id, result)
             if not settings.general.dont_notify_manual_actions:
                 send_notifications(sonarr_series_id, sonarr_episode_id, result.message)
-            store_subtitles(result.path, episodePath)
+            store_subtitles(sonarr_episode_id)
             return '', 204
     finally:
         jobs_queue.update_job_name(job_id=job_id, new_job_name="Manually downloaded Subtitles for {title} - "

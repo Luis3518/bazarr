@@ -159,7 +159,7 @@ def sync_episodes(series_id, defer_search=False, is_signalr=False):
                 del added_episode['created_at_timestamp']
                 episodes_to_update.append(added_episode)
             else:
-                store_subtitles(added_episode['path'], path_mappings.path_replace(added_episode['path']))
+                store_subtitles(added_episode['sonarrEpisodeId'])
                 event_stream(type='episode', payload=added_episode['sonarrEpisodeId'])
 
     # Update existing episodes in DB
@@ -173,7 +173,7 @@ def sync_episodes(series_id, defer_search=False, is_signalr=False):
             except IntegrityError as e:
                 logging.error(f"BAZARR cannot update episodes because of {e}")
             else:
-                store_subtitles(updated_episode['path'], path_mappings.path_replace(updated_episode['path']))
+                store_subtitles(updated_episode['sonarrEpisodeId'])
                 event_stream(type='episode', action='update', payload=updated_episode['sonarrEpisodeId'])
 
     # Downloading missing subtitles
@@ -275,7 +275,7 @@ def sync_one_episode(episode_id, defer_search=False, is_signalr=False):
         except IntegrityError as e:
             logging.error(f"BAZARR cannot update episode {episode['path']} because of {e}")
         else:
-            store_subtitles(episode['path'], path_mappings.path_replace(episode['path']))
+            store_subtitles(episode_id)
             event_stream(type='episode', action='update', payload=int(episode_id))
             logging.debug(
                 f'BAZARR updated this episode into the database:{path_mappings.path_replace(episode["path"])}')
@@ -290,7 +290,7 @@ def sync_one_episode(episode_id, defer_search=False, is_signalr=False):
         except IntegrityError as e:
             logging.error(f"BAZARR cannot insert episode {episode['path']} because of {e}")
         else:
-            store_subtitles(episode['path'], path_mappings.path_replace(episode['path']))
+            store_subtitles(episode_id)
             event_stream(type='episode', action='update', payload=int(episode_id))
             logging.debug(
                 f'BAZARR inserted this episode into the database:{path_mappings.path_replace(episode["path"])}')

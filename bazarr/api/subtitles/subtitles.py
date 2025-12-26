@@ -204,7 +204,7 @@ class Subtitles(Resource):
             os.chmod(subtitles_path, chmod)
 
         if media_type == 'episode':
-            store_subtitles(path_mappings.path_replace_reverse(video_path), video_path)
+            store_subtitles(id)
             event_stream(type='series', payload=metadata.sonarrSeriesId)
             event_stream(type='episode', payload=id)
         else:

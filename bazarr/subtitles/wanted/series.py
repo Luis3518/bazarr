@@ -59,7 +59,7 @@ def _wanted_episode(episode, job_id=None):
         if result:
             if isinstance(result, tuple) and len(result):
                 result = result[0]
-            store_subtitles(episode.path, path_mappings.path_replace(episode.path))
+            store_subtitles(episode.sonarrEpisodeId)
             history_log(1, episode.sonarrSeriesId, episode.sonarrEpisodeId, result)
             event_stream(type='series', action='update', payload=episode.sonarrSeriesId)
             event_stream(type='episode-wanted', action='delete', payload=episode.sonarrEpisodeId)
@@ -87,7 +87,7 @@ def wanted_download_subtitles(sonarr_episode_id, job_id=None):
         return
     elif episode_details.subtitles is None:
         # subtitles indexing for this episode is incomplete, we'll do it again
-        store_subtitles(episode_details.path, path_mappings.path_replace(episode_details.path))
+        store_subtitles(sonarr_episode_id)
         episode_details = database.execute(stmt).first()
     elif episode_details.missing_subtitles is None:
         # missing subtitles calculation for this episode is incomplete, we'll do it again

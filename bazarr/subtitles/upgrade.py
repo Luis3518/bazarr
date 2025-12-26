@@ -144,7 +144,7 @@ def upgrade_episodes_subtitles(job_id=None):
                 result = result[0]
             if isinstance(result, tuple) and len(result):
                 result = result[0]
-            store_subtitles(episode['video_path'], path_mappings.path_replace(episode['video_path']))
+            store_subtitles(episode['sonarrEpisodeId'])
             history_log(3, episode['sonarrSeriesId'], episode['sonarrEpisodeId'], result,
                         upgraded_from_id=episode['original_id'])
             send_notifications(episode['sonarrSeriesId'], episode['sonarrEpisodeId'], result.message)
