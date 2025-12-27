@@ -9,6 +9,7 @@ import signal
 
 from dogpile.cache import make_region
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import create_engine, inspect, DateTime, ForeignKey, Integer, LargeBinary, Text, func, text, BigInteger, \
     Boolean
@@ -636,7 +637,7 @@ def fix_languages_profiles_with_duplicate_ids():
             )
 
 
-def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> list[dict]:
+def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> List[dict]:
     """
     Retrieves a list of subtitles based on the provided episode or movie identifiers.
 
@@ -651,7 +652,7 @@ def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> list[
     :return: A list of dictionaries, each containing information about a subtitle file, including its
              path, language metadata (name, alpha-2 code, and alpha-3 code), forced subtitles flag,
              hearing impaired flag, and file size.
-    :rtype: list[dict]
+    :rtype: List[dict]
     """
     from languages.get_languages import alpha3_from_alpha2, language_from_alpha2
 
