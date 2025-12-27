@@ -45,12 +45,14 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
         if settings.general.use_embedded_subs:
             logging.debug("BAZARR is trying to index embedded subtitles.")
             try:
+                # Get all embedded subtitles
                 subtitle_languages = embedded_subs_reader(mapped_path,
                                                           file_size=item.file_size,
                                                           episode_file_id=item.episode_file_id,
                                                           use_cache=use_cache)
                 for track_id, subtitle_language, subtitle_forced, subtitle_hi, subtitle_codec in subtitle_languages:
                     try:
+                        # Skip subtitles track using codecs that the user doesn't want to index
                         if (settings.general.ignore_pgs_subs and subtitle_codec.lower() == "pgs") or \
                                 (settings.general.ignore_vobsub_subs and subtitle_codec.lower() ==
                                  "vobsub") or \
@@ -60,6 +62,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                                           f"{alpha2_from_alpha3(subtitle_language)}")
                             continue
 
+                        # Index embedded subtitles with defined and supported language
                         if alpha2_from_alpha3(subtitle_language) is not None:
                             lang = alpha2_from_alpha3(subtitle_language)
                             logging.debug(f"BAZARR embedded subtitles detected: {lang}"
@@ -74,7 +77,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                         logging.debug("BAZARR unable to index this unrecognized language: %s (%s)", subtitle_language, error)
 
                 database.execute(
-                    # Deletes prior indexed embedded subtitles lacking track ID
+                    # Delete prior indexed embedded subtitles lacking track ID
                     delete(TableEpisodesSubtitles)
                     .where(TableEpisodesSubtitles.sonarrSeriesId == item.sonarrSeriesId)
                     .where(TableEpisodesSubtitles.sonarrEpisodeId == sonarr_episode_id)
@@ -82,6 +85,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                     .where(TableEpisodesSubtitles.embedded_track_id.is_(None))
                 )
                 if len(embedded_subtitles):
+                    # Insert new embedded subtitles or update existing ones
                     embedded_stmt = insert(TableEpisodesSubtitles).values(embedded_subtitles)
                     embedded_stmt = embedded_stmt.on_conflict_do_update(
                         index_elements=['embedded_track_id', 'sonarrSeriesId', 'sonarrEpisodeId', 'language',
@@ -96,6 +100,16 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                         index_where=TableEpisodesSubtitles.path.is_(None)
                     )
                     database.execute(embedded_stmt)
+
+                    # Delete prior indexed embedded subtitles that don't exist anymore
+                    embedded_subtitles_id_list = [x['embedded_track_id'] for x in embedded_subtitles]
+                    if len(embedded_subtitles_id_list):
+                        database.execute(
+                            delete(TableEpisodesSubtitles)
+                            .where(TableEpisodesSubtitles.sonarrEpisodeId == sonarr_episode_id)
+                            .where(TableEpisodesSubtitles.path.is_(None))
+                            .where(TableEpisodesSubtitles.embedded_track_id.not_in(embedded_subtitles_id_list))
+                        )
             except Exception:
                 logging.exception(
                     "BAZARR error when trying to analyze this %s file: %s" % (os.path.splitext(mapped_path)[1],
@@ -106,7 +120,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
             dest_folder = get_subtitle_destination_folder()
             core.CUSTOM_PATHS = [dest_folder] if dest_folder else []
 
-            # get previously indexed subtitles that haven't changed:
+            # Get previously indexed subtitles that haven't changed:
             previously_indexed_subtitles = get_subtitles(sonarr_episode_id=sonarr_episode_id)
             previously_indexed_subtitles_to_exclude = \
                 [x for x in previously_indexed_subtitles
@@ -114,6 +128,17 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                  os.path.isfile(x['path']) and
                  os.stat(x['path']).st_size == x['file_size']]
 
+            # Get previously indexed subtitles that no longer exist:
+            previously_indexed_subtitles_to_delete = \
+                [path_mappings.path_replace_reverse(x['path']) for x in previously_indexed_subtitles
+                 if x['path'] and not os.path.isfile(x['path'])]
+
+            if previously_indexed_subtitles_to_delete:
+                database.execute(
+                    delete(TableEpisodesSubtitles)
+                    .where(TableEpisodesSubtitles.path.in_(previously_indexed_subtitles_to_delete)))
+
+            # Search for external subtitles:
             subtitles = search_external_subtitles(mapped_path, languages=get_language_set(),
                                                   only_one=settings.general.single_language)
             full_dest_folder_path = os.path.dirname(mapped_path)
@@ -122,11 +147,14 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                     full_dest_folder_path = dest_folder
                 elif settings.general.subfolder == "relative":
                     full_dest_folder_path = os.path.join(os.path.dirname(mapped_path), dest_folder)
-            subtitles = guess_external_subtitles(full_dest_folder_path, subtitles, "series",
+
+            # Guess external subtitles language if not specified in the file name:
+            subtitles = guess_external_subtitles(full_dest_folder_path, subtitles,
                                                  previously_indexed_subtitles_to_exclude)
         except Exception as e:
             logging.exception(f"BAZARR unable to index external subtitles for this file {mapped_path}: {repr(e)}")
         else:
+            # For each external subtitle, store it in the database
             for subtitle, language in subtitles.items():
                 valid_language = False
                 if language:
@@ -142,6 +170,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
 
                 subtitle_path = get_external_subtitles_path(mapped_path, subtitle)
 
+                # We get custom language external subtitles
                 custom = CustomLanguage.found_external(subtitle, subtitle_path)
                 if custom is not None:
                     logging.debug(f"BAZARR external subtitles detected: {custom.split(':')[0]}"
@@ -155,6 +184,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                                                'path': path_mappings.path_replace_reverse(subtitle_path),
                                                'size': os.stat(subtitle_path).st_size})
 
+                # We get defined and supported language external subtitles
                 elif str(language.basename) != 'und':
                     logging.debug(f"BAZARR external subtitles detected: {language}"
                                   f"{" (forced)" if language.forced else ""}"
@@ -167,6 +197,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                                                'path': path_mappings.path_replace_reverse(subtitle_path),
                                                'size': os.stat(subtitle_path).st_size})
 
+            # We store external subtitles in the database or update existing ones
             if len(external_subtitles):
                 stmt = insert(TableEpisodesSubtitles).values(external_subtitles)
                 stmt = stmt.on_conflict_do_update(
@@ -180,6 +211,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                 )
                 database.execute(stmt)
 
+        # We list missing subtitles for this episode and store them in the database
         logging.debug(f"BAZARR storing those languages to DB: {embedded_subtitles + external_subtitles}")
         list_missing_subtitles(epno=sonarr_episode_id)
     else:

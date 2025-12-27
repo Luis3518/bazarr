@@ -14,7 +14,7 @@ from sonarr.history import history_log
 from app.notifier import send_notifications
 from app.get_providers import get_providers
 from app.database import get_exclusion_clause, get_audio_profile_languages, TableShows, TableEpisodes, database, \
-    update, select
+    update, select, get_subtitles
 from app.event_handler import event_stream
 from app.jobs_queue import jobs_queue
 
@@ -75,8 +75,7 @@ def wanted_download_subtitles(sonarr_episode_id, job_id=None):
                   TableEpisodes.sceneName,
                   TableEpisodes.failedAttempts,
                   TableShows.title,
-                  TableShows.profileId,
-                  TableEpisodes.subtitles) \
+                  TableShows.profileId) \
         .select_from(TableEpisodes) \
         .join(TableShows) \
         .where((TableEpisodes.sonarrEpisodeId == sonarr_episode_id))
@@ -85,7 +84,7 @@ def wanted_download_subtitles(sonarr_episode_id, job_id=None):
     if not episode_details:
         logging.debug(f"BAZARR no episode with that sonarrId can be found in database: {sonarr_episode_id}")
         return
-    elif episode_details.subtitles is None:
+    elif not len(get_subtitles(sonarr_episode_id=sonarr_episode_id)):
         # subtitles indexing for this episode is incomplete, we'll do it again
         store_subtitles(sonarr_episode_id)
         episode_details = database.execute(stmt).first()

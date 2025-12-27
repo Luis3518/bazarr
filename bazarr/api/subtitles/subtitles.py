@@ -2,11 +2,10 @@
 
 import os
 import sys
-import gc
 
 from flask_restx import Resource, Namespace, reqparse, fields, marshal
 
-from app.database import TableEpisodes, TableMovies, database, select
+from app.database import TableEpisodes, TableMovies, database, select, get_subtitles
 from languages.get_languages import alpha3_from_alpha2
 from utilities.path_mappings import path_mappings
 from utilities.video_analyzer import subtitles_sync_references
@@ -122,7 +121,7 @@ class Subtitles(Resource):
 
         if media_type == 'episode':
             metadata = database.execute(
-                select(TableEpisodes.path, TableEpisodes.sonarrSeriesId, TableEpisodes.subtitles)
+                select(TableEpisodes.path, TableEpisodes.sonarrSeriesId)
                 .where(TableEpisodes.sonarrEpisodeId == id)) \
                 .first()
 
@@ -163,20 +162,15 @@ class Subtitles(Resource):
             dest_language = language
             from_language = None
 
-            if metadata.subtitles:
-                subtitles_list = get_array_from(metadata.subtitles)
-                subtitles_filename = os.path.basename(subtitles_path)
+            subtitles = get_subtitles(sonarr_episode_id=id if media_type == "episode" else None,
+                                      radarr_id=id if media_type == "movie" else None)
 
-                for subtitle_entry in subtitles_list:
-                    if len(subtitle_entry) >= 2 and subtitle_entry[1] is not None:
-                        db_subtitle_filename = os.path.basename(subtitle_entry[1])
-                        if db_subtitle_filename == subtitles_filename:
-                            # Remove any suffix (e.g., :hi, :forced) from language code
-                            from_language = subtitle_entry[0].split(':')[0]
-                            break
+            if subtitles:
+                for external_subtitles in subtitles:
+                    if external_subtitles['path'] == subtitles_path:
+                        from_language = external_subtitles['code2']
+                        break
 
-                if not from_language or not alpha3_from_alpha2(from_language):
-                    from_language = subtitles_lang_from_filename(subtitles_path)
                 if not from_language or not alpha3_from_alpha2(from_language):
                     return 'Invalid source language code', 400
 
@@ -190,7 +184,6 @@ class Subtitles(Resource):
                 except OSError:
                     return 'Unable to edit subtitles file. Check logs.', 409
         else:
-            use_original_format = True if args.get('original_format') == 'true' else False
             try:
                 subtitles_apply_mods(language=language, subtitle_path=subtitles_path, mods=[action],
                                      video_path=video_path)

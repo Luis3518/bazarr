@@ -41,22 +41,18 @@ def get_external_subtitles_path(file, subtitle):
     return path
 
 
-def guess_external_subtitles(dest_folder, subtitles, media_type, previously_indexed_subtitles_to_exclude=None):
+def guess_external_subtitles(dest_folder, subtitles, previously_indexed_subtitles_to_exclude=None):
     for subtitle, language in subtitles.items():
         subtitle_path = os.path.join(dest_folder, subtitle)
-        reversed_subtitle_path = path_mappings.path_replace_reverse(subtitle_path) if media_type == "series" \
-            else path_mappings.path_replace_reverse_movie(subtitle_path)
 
-        if previously_indexed_subtitles_to_exclude:
-            x_found_lang = None
-            for x_path, x_name, x_code2, x_code3, x_forced, x_hi, x_size in previously_indexed_subtitles_to_exclude:
-                if x_path == reversed_subtitle_path and x_size == os.stat(subtitle_path).st_size:
-                    x_found_lang = x_code2
+        if previously_indexed_subtitles_to_exclude and not language:
+            for external_subtitles in previously_indexed_subtitles_to_exclude:
+                if (external_subtitles['path'] == subtitle_path and
+                        external_subtitles['file_size'] == os.stat(subtitle_path).st_size):
+                    subtitles[subtitle] = _get_lang_from_str(external_subtitles['code2'],
+                                                             external_subtitles['forced'],
+                                                             external_subtitles['hi'])
                     break
-            if x_found_lang:
-                if not language:
-                    subtitles[subtitle] = _get_lang_from_str(x_found_lang, x_forced, x_hi)
-                continue
 
         if not language:
             if os.path.exists(subtitle_path) and os.path.splitext(subtitle_path)[1] in core.SUBTITLE_EXTENSIONS:

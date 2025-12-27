@@ -5,7 +5,7 @@ import os
 import pickle
 
 from app.config import settings
-from app.database import TableEpisodes, TableMovies, database, update, select
+from app.database import TableEpisodes, TableMovies, database, update, select, get_subtitles
 from languages.custom_lang import CustomLanguage
 from languages.get_languages import language_from_alpha2, language_from_alpha3, alpha3_from_alpha2
 from utilities.path_mappings import path_mappings
@@ -115,7 +115,7 @@ def subtitles_sync_references(subtitles_path, sonarr_episode_id=None, radarr_mov
 
     if sonarr_episode_id:
         media_data = database.execute(
-            select(TableEpisodes.path, TableEpisodes.file_size, TableEpisodes.episode_file_id, TableEpisodes.subtitles)
+            select(TableEpisodes.path, TableEpisodes.file_size, TableEpisodes.episode_file_id)
             .where(TableEpisodes.sonarrEpisodeId == sonarr_episode_id)) \
             .first()
 
@@ -193,22 +193,19 @@ def subtitles_sync_references(subtitles_path, sonarr_episode_id=None, radarr_mov
                 track_id += 1
 
         try:
-            parsed_subtitles = ast.literal_eval(media_data.subtitles)
+            parsed_subtitles = get_subtitles(sonarr_episode_id=sonarr_episode_id, radarr_id=radarr_movie_id,)
         except ValueError:
             pass
         else:
             for subtitles in parsed_subtitles:
-                reversed_subtitles_path = path_mappings.path_replace_reverse(subtitles_path) if sonarr_episode_id else (
-                    path_mappings.path_replace_reverse_movie(subtitles_path))
-                if subtitles[1] and subtitles[1] != reversed_subtitles_path:
-                    language_dict = languages_from_colon_seperated_string(subtitles[0])
+                if subtitles['path'] and subtitles['path'] != subtitles_path:
                     references_dict['external_subtitles_tracks'].append({
-                        'name': os.path.basename(subtitles[1]),
-                        'path': path_mappings.path_replace(subtitles[1]) if sonarr_episode_id else
-                        path_mappings.path_replace_reverse_movie(subtitles[1]),
-                        'language': language_dict['language'],
-                        'forced': language_dict['forced'],
-                        'hearing_impaired': language_dict['hi'],
+                        'name': os.path.basename(subtitles['path']),
+                        'path': path_mappings.path_replace(subtitles['path']) if sonarr_episode_id else
+                        path_mappings.path_replace_reverse_movie(subtitles['path']),
+                        'language': subtitles['name'],
+                        'forced': subtitles['forced'],
+                        'hearing_impaired': subtitles['hi'],
                     })
                 else:
                     # excluding subtitles that is going to be synced from the external subtitles list
@@ -328,15 +325,3 @@ def parse_video_metadata(file, file_size, episode_file_id=None, movie_file_id=No
             .values(ffprobe_cache=pickle.dumps(data, pickle.HIGHEST_PROTOCOL))
             .where(TableMovies.movie_file_id == movie_file_id))
     return data
-
-
-def languages_from_colon_seperated_string(lang):
-    splitted_language = lang.split(':')
-    language = language_from_alpha2(splitted_language[0])
-    forced = hi = False
-    if len(splitted_language) > 1:
-        if splitted_language[1] == 'forced':
-            forced = True
-        elif splitted_language[1] == 'hi':
-            hi = True
-    return {'language': language, 'forced': forced, 'hi': hi}
