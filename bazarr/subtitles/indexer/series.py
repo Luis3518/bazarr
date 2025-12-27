@@ -173,9 +173,7 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                 # We get custom language external subtitles
                 custom = CustomLanguage.found_external(subtitle, subtitle_path)
                 if custom is not None:
-                    logging.debug(f"BAZARR external subtitles detected: {custom.split(':')[0]}"
-                                  f"{':forced' if custom.endswith(':forced') else ''}"
-                                  f"{':hi' if custom.endswith(':hi') else ''}")
+                    logging.debug(f"BAZARR external subtitles detected: {custom}")
                     external_subtitles.append({'sonarrSeriesId': item.sonarrSeriesId,
                                                'sonarrEpisodeId': sonarr_episode_id,
                                                'language': custom.split(':')[0],
@@ -187,8 +185,8 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                 # We get defined and supported language external subtitles
                 elif str(language.basename) != 'und':
                     logging.debug(f"BAZARR external subtitles detected: {language}"
-                                  f"{" (forced)" if language.forced else ""}"
-                                  f"{(' (hi)' if language.hi else '')}")
+                                  f"{':forced' if language.forced else ''}"
+                                  f"{':hi' if language.hi else ''}")
                     external_subtitles.append({'sonarrSeriesId': item.sonarrSeriesId,
                                                'sonarrEpisodeId': sonarr_episode_id,
                                                'language': language.basename,
