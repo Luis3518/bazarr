@@ -195,16 +195,16 @@ def manual_upload_subtitle(path, language, forced, hi, media_type, subtitle, aud
             result = result[0]
         provider = "manual"
         if media_type == 'series':
+            store_subtitles(sonarrEpisodeId)
             score = 360
             history_log(4, sonarrSeriesId, sonarrEpisodeId, result, fake_provider=provider, fake_score=score)
             if not settings.general.dont_notify_manual_actions:
                 send_notifications(sonarrSeriesId, sonarrEpisodeId, result.message)
-            store_subtitles(sonarrEpisodeId)
         else:
+            store_subtitles_movie(radarrId)
             score = 120
             history_log_movie(4, radarrId, result, fake_provider=provider, fake_score=score)
             if not settings.general.dont_notify_manual_actions:
                 send_notifications_movie(radarrId, result.message)
-            store_subtitles_movie(result.path, path)
 
     return '', 204

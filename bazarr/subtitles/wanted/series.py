@@ -61,9 +61,9 @@ def _wanted_episode(episode, job_id=None):
                 result = result[0]
             store_subtitles(episode.sonarrEpisodeId)
             history_log(1, episode.sonarrSeriesId, episode.sonarrEpisodeId, result)
+            send_notifications(episode.sonarrSeriesId, episode.sonarrEpisodeId, result.message)
             event_stream(type='series', action='update', payload=episode.sonarrSeriesId)
             event_stream(type='episode-wanted', action='delete', payload=episode.sonarrEpisodeId)
-            send_notifications(episode.sonarrSeriesId, episode.sonarrEpisodeId, result.message)
 
 
 def wanted_download_subtitles(sonarr_episode_id, job_id=None):
@@ -81,11 +81,14 @@ def wanted_download_subtitles(sonarr_episode_id, job_id=None):
         .where((TableEpisodes.sonarrEpisodeId == sonarr_episode_id))
     episode_details = database.execute(stmt).first()
 
+    previously_indexed_subtitles = get_subtitles(sonarr_episode_id=sonarr_episode_id)
+
     if not episode_details:
         logging.debug(f"BAZARR no episode with that sonarrId can be found in database: {sonarr_episode_id}")
         return
-    elif not len(get_subtitles(sonarr_episode_id=sonarr_episode_id)):
-        # subtitles indexing for this episode is incomplete, we'll do it again
+    elif not len(previously_indexed_subtitles) or \
+            any([not x['embedded_track_id'] for x in previously_indexed_subtitles if not x['path']]):
+        # subtitles indexing for this episode might be incomplete, we'll do it again
         store_subtitles(sonarr_episode_id)
         episode_details = database.execute(stmt).first()
     elif episode_details.missing_subtitles is None:

@@ -131,7 +131,7 @@ class Subtitles(Resource):
             video_path = path_mappings.path_replace(metadata.path)
         else:
             metadata = database.execute(
-                select(TableMovies.path, TableMovies.subtitles)
+                select(TableMovies.path)
                 .where(TableMovies.radarrId == id))\
                 .first()
 
@@ -201,29 +201,7 @@ class Subtitles(Resource):
             event_stream(type='series', payload=metadata.sonarrSeriesId)
             event_stream(type='episode', payload=id)
         else:
-            store_subtitles_movie(path_mappings.path_replace_reverse_movie(video_path), video_path)
+            store_subtitles_movie(id)
             event_stream(type='movie', payload=id)
 
         return '', 204
-
-
-def subtitles_lang_from_filename(path):
-    split_extensionless_path = os.path.splitext(path.lower())[0].rsplit(".", 2)
-
-    if len(split_extensionless_path) < 2:
-        return None
-    elif len(split_extensionless_path) == 2:
-        return_lang = split_extensionless_path[-1]
-    else:
-        first_ext = split_extensionless_path[-1]
-        second_ext = split_extensionless_path[-2]
-
-        if first_ext in ['hi', 'sdh', 'cc']:
-            if alpha3_from_alpha2(second_ext):
-                return_lang = second_ext
-            else:
-                return first_ext
-        else:
-            return_lang = first_ext
-
-    return return_lang.replace('_', '-')

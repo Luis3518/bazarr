@@ -144,7 +144,6 @@ def movieParser(movie, action, tags_dict, language_profiles, movie_default_profi
                         'file_size': movie['movieFile']['size']}
 
         if action == 'insert':
-            parsed_movie['subtitles'] = '[]'
             parsed_movie['profileId'] = movie_default_profile
 
         if settings.general.movie_tag_enabled:

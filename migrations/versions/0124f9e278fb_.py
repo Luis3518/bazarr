@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 import ast
 
-from app.database import TableEpisodes, TableMovies, TableEpisodesSubtitles, TableMoviesSubtitles, select
+from app.database import TableEpisodesSubtitles, TableMoviesSubtitles
 
 
 # revision identifiers, used by Alembic.
@@ -31,12 +31,10 @@ def parse_language(language):
 
 
 def upgrade():
-    episodes = bind.execute(
-        select(TableEpisodes.sonarrEpisodeId,
-               TableEpisodes.sonarrSeriesId,
-               TableEpisodes.subtitles)
-        .where(TableEpisodes.subtitles.is_not(None), TableEpisodes.subtitles != '[]')
-    ).all()
+    # we do a raw SQL query to avoid the need to modify the TableEpisodes model
+    episodes = bind.exec_driver_sql("SELECT sonarrEpisodeId, sonarrSeriesId, subtitles "
+                                    "FROM table_episodes "
+                                    "WHERE subtitles IS NOT NULL AND subtitles != '[]';")
 
     for episode in episodes:
         try:
@@ -58,11 +56,10 @@ def upgrade():
 
     op.drop_column(column_name='subtitles', table_name='table_episodes')
 
-    movies = bind.execute(
-        select(TableMovies.radarrId,
-               TableMovies.subtitles)
-        .where(TableMovies.subtitles.is_not(None), TableMovies.subtitles != '[]')
-    ).all()
+    # we do a raw SQL query to avoid the need to modify the TableMovies model
+    movies = bind.exec_driver_sql("SELECT radarrId, subtitles "
+                                  "FROM table_movies "
+                                  "WHERE subtitles IS NOT NULL AND subtitles != '[]';")
 
     for movie in movies:
         try:

@@ -74,7 +74,8 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                                                        'hi': subtitle_hi,
                                                        'embedded_track_id': track_id})
                     except Exception as error:
-                        logging.debug("BAZARR unable to index this unrecognized language: %s (%s)", subtitle_language, error)
+                        logging.debug(f"BAZARR unable to index this unrecognized language: {subtitle_language} "
+                                      f"({error})")
 
                 database.execute(
                     # Delete prior indexed embedded subtitles lacking track ID
@@ -111,9 +112,8 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                             .where(TableEpisodesSubtitles.embedded_track_id.not_in(embedded_subtitles_id_list))
                         )
             except Exception:
-                logging.exception(
-                    "BAZARR error when trying to analyze this %s file: %s" % (os.path.splitext(mapped_path)[1],
-                                                                              mapped_path))
+                logging.exception(f"BAZARR error when trying to analyze this {os.path.splitext(mapped_path)[1]} file: "
+                                  f"{mapped_path}")
                 pass
 
         try:
@@ -208,12 +208,15 @@ def store_subtitles(sonarr_episode_id, use_cache=True):
                     }
                 )
                 database.execute(stmt)
-
-        # We list missing subtitles for this episode and store them in the database
-        logging.debug(f"BAZARR storing those languages to DB: {embedded_subtitles + external_subtitles}")
-        list_missing_subtitles(epno=sonarr_episode_id)
     else:
         logging.debug("BAZARR this file doesn't seems to exist or isn't accessible.")
+        return
+
+    # We store actual subtitles for this episode in the database
+    logging.debug(f"BAZARR has stored those languages to DB: {embedded_subtitles + external_subtitles}")
+
+    # We list missing subtitles for this episode and store them in the database
+    list_missing_subtitles(epno=sonarr_episode_id)
 
     logging.debug(f'BAZARR ended subtitles indexing for this file: {mapped_path}')
 

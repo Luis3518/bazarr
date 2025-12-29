@@ -128,7 +128,7 @@ def subtitles_sync_references(subtitles_path, sonarr_episode_id=None, radarr_mov
                                     use_cache=True)
     elif radarr_movie_id:
         media_data = database.execute(
-            select(TableMovies.path, TableMovies.file_size, TableMovies.movie_file_id, TableMovies.subtitles)
+            select(TableMovies.path, TableMovies.file_size, TableMovies.movie_file_id)
             .where(TableMovies.radarrId == radarr_movie_id)) \
             .first()
 

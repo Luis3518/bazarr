@@ -100,11 +100,14 @@ def episode_download_subtitles(no, job_id=None, job_sub_function=False, provider
         .where(reduce(operator.and_, conditions))
     episode = database.execute(stmt).first()
 
+    previously_indexed_subtitles = get_subtitles(sonarr_episode_id=episode.sonarrEpisodeId)
+
     if not episode:
         logging.debug("BAZARR no episode with that sonarrEpisodeId can be found in database:", str(no))
         jobs_queue.update_job_progress(job_id=job_id, progress_message="Episode not found in database.")
         return
-    elif not len(get_subtitles(sonarr_episode_id=episode.sonarrEpisodeId)):
+    elif not len(previously_indexed_subtitles) or \
+            any([not x['embedded_track_id'] for x in previously_indexed_subtitles if not x['path']]):
         # subtitles indexing for this episode might be incomplete, we'll do it again
         store_subtitles(episode.sonarrEpisodeId)
         episode = database.execute(stmt).first()
@@ -222,9 +225,9 @@ def episode_download_specific_subtitles(sonarr_series_id, sonarr_episode_id, lan
             result = result[0]
             if isinstance(result, tuple) and len(result):
                 result = result[0]
+            store_subtitles(sonarr_episode_id)
             history_log(1, sonarr_series_id, sonarr_episode_id, result)
             send_notifications(sonarr_series_id, sonarr_episode_id, result.message)
-            store_subtitles(sonarr_episode_id)
         else:
             event_stream(type='episode', payload=sonarr_episode_id)
             jobs_queue.update_job_progress(job_id=job_id, progress_value='max',

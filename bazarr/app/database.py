@@ -173,7 +173,6 @@ class TableEpisodes(Base):
     season = mapped_column(Integer, nullable=False)
     sonarrEpisodeId = mapped_column(Integer, primary_key=True)
     sonarrSeriesId = mapped_column(Integer, ForeignKey('table_shows.sonarrSeriesId', ondelete='CASCADE'))
-    subtitles = mapped_column(Text)
     title = mapped_column(Text, nullable=False)
     updated_at_timestamp = mapped_column(DateTime)
     video_codec = mapped_column(Text)
@@ -281,7 +280,6 @@ class TableMovies(Base):
     resolution = mapped_column(Text)
     sceneName = mapped_column(Text)
     sortTitle = mapped_column(Text)
-    subtitles = mapped_column(Text)
     tags = mapped_column(Text)
     title = mapped_column(Text, nullable=False)
     tmdbId = mapped_column(Text, nullable=False, unique=True)
@@ -663,7 +661,8 @@ def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> List[
                    TableEpisodesSubtitles.language,
                    TableEpisodesSubtitles.forced,
                    TableEpisodesSubtitles.hi,
-                   TableEpisodesSubtitles.size)
+                   TableEpisodesSubtitles.size,
+                   TableEpisodesSubtitles.embedded_track_id)
             .where(TableEpisodesSubtitles.sonarrEpisodeId == sonarr_episode_id)
         ).all()
 
@@ -675,7 +674,8 @@ def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> List[
                  "code3": alpha3_from_alpha2(episode_subtitles.language),
                  "forced": episode_subtitles.forced,
                  "hi": episode_subtitles.hi,
-                 "file_size": episode_subtitles.size}
+                 "file_size": episode_subtitles.size,
+                 "embedded_track_id": episode_subtitles.embedded_track_id}
             )
     elif radarr_id:
         movies_subtitles = database.execute(
@@ -683,7 +683,8 @@ def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> List[
                    TableMoviesSubtitles.language,
                    TableMoviesSubtitles.forced,
                    TableMoviesSubtitles.hi,
-                   TableMoviesSubtitles.size)
+                   TableMoviesSubtitles.size,
+                   TableMoviesSubtitles.embedded_track_id)
             .where(TableMoviesSubtitles.radarrId == radarr_id)
         ).all()
 
@@ -695,7 +696,8 @@ def get_subtitles(sonarr_episode_id: int = None, radarr_id: int = None) -> List[
                  "code3": alpha3_from_alpha2(movie_subtitles.language),
                  "forced": movie_subtitles.forced,
                  "hi": movie_subtitles.hi,
-                 "file_size": movie_subtitles.size}
+                 "file_size": movie_subtitles.size,
+                 "embedded_track_id": movie_subtitles.embedded_track_id}
             )
 
-    return subtitles
+    return sorted(subtitles, key=lambda i: (i['name'], i['forced']))
