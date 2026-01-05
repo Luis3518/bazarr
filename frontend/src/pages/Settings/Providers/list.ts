@@ -1,8 +1,10 @@
-import { SelectorOption } from "@/components";
+import type { SelectorOption } from "@/components";
+
+const EMAIL_REGEX = /^.\S+@\S+$/;
 
 type Text = string | number;
 
-type Input<T, N> = {
+interface Input<T, N> {
   type: N;
   key: string;
   defaultValue?: T;
@@ -12,7 +14,7 @@ type Input<T, N> = {
   validation?: {
     rule: (value: string) => string | null;
   };
-};
+}
 
 type AvailableInput =
   | Input<Text, "text">
@@ -89,15 +91,9 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     message: "Requires AniDB Integration.",
   },
   {
-    key: "animesubinfo",
-    name: "AnimeSub.info",
-    description: "Polish Anime Subtitles Provider",
-  },
-  {
     key: "avistaz",
     name: "AvistaZ",
-    description:
-      "avistaz.to - AvistaZ is an Asian torrent tracker for HD movies, TV shows and music",
+    description: "avistaz.to - AvistaZ is an Asian torrent tracker for HD movies, TV shows and music",
     inputs: [
       {
         type: "text",
@@ -192,8 +188,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
         defaultValue: "en",
       },
     ],
-    message:
-      "Warning for cloud users: this provider needs to read the entire file in order to extract subtitles.",
+    message: "Warning for cloud users: this provider needs to read the entire file in order to extract subtitles.",
   },
   {
     key: "gestdown",
@@ -214,8 +209,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     key: "hdbits",
     name: "HDBits.org",
     description: "Private Tracker Subtitles Provider",
-    message:
-      "You must have 2FA enabled and whitelist your IP if you are running from a server.",
+    message: "You must have 2FA enabled and whitelist your IP if you are running from a server.",
     inputs: [
       {
         type: "text",
@@ -232,8 +226,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     key: "jimaku",
     name: "Jimaku.cc",
     description: "Japanese Subtitles Provider",
-    message:
-      "API key required. Subtitles stem from various sources and might have quality/timing issues.",
+    message: "API key required. Subtitles stem from various sources and might have quality/timing issues.",
     inputs: [
       {
         type: "password",
@@ -349,8 +342,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
   {
     key: "napisy24",
     description: "Polish Subtitles Provider",
-    message:
-      "The provided credentials must have API access. Leave empty to use the defaults.",
+    message: "The provided credentials must have API access. Leave empty to use the defaults.",
     inputs: [
       {
         type: "text",
@@ -401,10 +393,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
         type: "text",
         key: "username",
         validation: {
-          rule: (value: string) =>
-            /^.\S+@\S+$/.test(value)
-              ? "Invalid Username. Do not use your e-mail."
-              : null,
+          rule: (value: string) => (EMAIL_REGEX.test(value) ? "Invalid Username. Do not use your e-mail." : null),
         },
       },
       {
@@ -474,19 +463,6 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     message: "Make sure to use a unique and credible user agent.",
   },
   {
-    key: "subsource",
-    name: "subsource.net",
-    message:
-      "API key is  required. You can create your own API key on your Subsource profile page.",
-    inputs: [
-      {
-        type: "password",
-        key: "apikey",
-        name: "API key",
-      },
-    ],
-  },
-  {
     key: "subssabbz",
     name: "Subs.sab.bz",
     description: "Bulgarian Subtitles Provider",
@@ -499,8 +475,7 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
   {
     key: "subs4series",
     name: "Subs4Series",
-    description:
-      "Greek Subtitles Provider.\nRequires anti-captcha provider to solve captchas for each download.",
+    description: "Greek Subtitles Provider.\nRequires anti-captcha provider to solve captchas for each download.",
   },
   { key: "subscenter", description: "Hebrew Subtitles Provider" },
   {
@@ -512,6 +487,12 @@ export const ProviderList: Readonly<ProviderInfo[]> = [
     key: "subsunacs",
     name: "Subsunacs.net",
     description: "Bulgarian Subtitles Provider",
+  },
+  {
+    key: "subtis",
+    name: "Subtis",
+    description: "Spanish Subtitles Provider for Movies",
+    message: "No configuration required. Spanish subtitles only.",
   },
   { key: "subsynchro", description: "French Subtitles Provider" },
   {
@@ -668,8 +649,7 @@ export const IntegrationList: Readonly<ProviderInfo[]> = [
   {
     key: "anidb",
     name: "AniDB",
-    description:
-      "AniDB is non-profit database of anime information that is freely open to the public.",
+    description: "AniDB is non-profit database of anime information that is freely open to the public.",
     inputs: [
       {
         type: "text",
