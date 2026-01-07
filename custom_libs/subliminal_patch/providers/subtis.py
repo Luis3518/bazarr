@@ -20,7 +20,7 @@ from subzero.language import Language
 if TYPE_CHECKING:
     from subliminal.video import Video as SubtitleVideo
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 logger = logging.getLogger(__name__)
 
@@ -174,10 +174,6 @@ class SubtisProvider(Provider):
         return None
 
     def query(self, language: Language, video: Movie | Episode) -> list[SubtisSubtitle]:
-        if isinstance(video, Episode):
-            logger.debug("TV show support not yet implemented")
-            return []
-
         if not video.name:
             logger.warning("Missing video name")
             return []
@@ -229,6 +225,10 @@ class SubtisProvider(Provider):
         video: Movie | Episode,
         languages: set[Language],
     ) -> list[SubtisSubtitle]:
+        if isinstance(video, Episode):
+            logger.debug("TV show support not yet implemented")
+            return []
+
         subtitles: list[SubtisSubtitle] = []
         for language in languages:
             subtitles.extend(self.query(language, video))
